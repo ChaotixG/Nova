@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import '../color_reference.dart';
 import '../app_state.dart';
-import 'dart:collection';
+import '../widgets/calendar_widget.dart';
 
-/// Concrete State: Calendar State
 class CalendarState extends AppState {
   final Function(AppState) onStateChange;
 
@@ -17,7 +14,6 @@ class CalendarState extends AppState {
   }
 }
 
-/// Stateful Widget for Calendar UI
 class CalendarView extends StatefulWidget {
   final Function(AppState) onStateChange;
 
@@ -28,62 +24,30 @@ class CalendarView extends StatefulWidget {
 }
 
 class CalendarViewState extends State<CalendarView> {
-  late final ValueNotifier<List<Event>> _selectedEvents;
-  DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay;
-  int _currentIndex = 1; // Default to month view
-
-  final LinkedHashMap<DateTime, List<Event>> _events = LinkedHashMap();
+  final Map<DateTime, List<Event>> _events = {};
+  late DateTime _selectedDate;
 
   @override
   void initState() {
     super.initState();
-    _selectedDay = _focusedDay;
-    _selectedEvents = ValueNotifier(_getEventsForDay(_selectedDay!));
+    _selectedDate = DateTime.now();
   }
 
-  List<Event> _getEventsForDay(DateTime day) {
-    return _events[DateTime(day.year, day.month, day.day)] ?? [];
+  List<Event> _getEventsForDate(DateTime date) {
+    final normalizedDate = DateTime(date.year, date.month, date.day);
+    return _events[normalizedDate] ?? [];
   }
 
   void _addEvent() {
     showDialog(
       context: context,
       builder: (context) {
-        TextEditingController eventController = TextEditingController();
-        String? recurrence;
-        Color? eventColor;
-
+        final TextEditingController titleController = TextEditingController();
         return AlertDialog(
           title: const Text("Add Event"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: eventController,
-                decoration: const InputDecoration(hintText: "Enter event title"),
-              ),
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: "Recurrence"),
-                items: const [
-                  DropdownMenuItem(value: "Daily", child: Text("Daily")),
-                  DropdownMenuItem(value: "Weekly", child: Text("Weekly")),
-                  DropdownMenuItem(value: "Monthly", child: Text("Monthly")),
-                  DropdownMenuItem(value: "Yearly", child: Text("Yearly")),
-                ],
-                onChanged: (value) => recurrence = value,
-              ),
-              DropdownButtonFormField<Color>(
-                decoration: const InputDecoration(labelText: "Event Color"),
-                items: [
-                  DropdownMenuItem(value: Colors.red, child: Text("Red")),
-                  DropdownMenuItem(value: Colors.blue, child: Text("Blue")),
-                  DropdownMenuItem(value: Colors.green, child: Text("Green")),
-                  DropdownMenuItem(value: Colors.purple, child: Text("Purple")),
-                ],
-                onChanged: (value) => eventColor = value,
-              ),
-            ],
+          content: TextField(
+            controller: titleController,
+            decoration: const InputDecoration(hintText: "Event title"),
           ),
           actions: [
             TextButton(
@@ -92,23 +56,19 @@ class CalendarViewState extends State<CalendarView> {
             ),
             TextButton(
               onPressed: () {
-                if (eventController.text.isNotEmpty) {
+                final title = titleController.text;
+                if (title.isNotEmpty) {
                   setState(() {
-                    final dateKey = DateTime(
-                      _selectedDay!.year,
-                      _selectedDay!.month,
-                      _selectedDay!.day,
+                    final normalizedDate = DateTime(
+                      _selectedDate.year,
+                      _selectedDate.month,
+                      _selectedDate.day,
                     );
-                    _events[dateKey] ??= [];
-                    _events[dateKey]?.add(Event(
-                      title: eventController.text,
-                      recurrence: recurrence,
-                      color: eventColor ?? Colors.blue,
-                    ));
+                    _events.putIfAbsent(normalizedDate, () => []);
+                    _events[normalizedDate]?.add(Event(title: title));
                   });
-                  _selectedEvents.value = _getEventsForDay(_selectedDay!);
-                  Navigator.pop(context);
                 }
+                Navigator.pop(context);
               },
               child: const Text("Save"),
             ),
@@ -118,251 +78,78 @@ class CalendarViewState extends State<CalendarView> {
     );
   }
 
-  void _searchEvents() {
-    showSearch(
-      context: context,
-      delegate: EventSearchDelegate(events: _events),
-    );
+  void _deleteEvent(Event event) {
+    setState(() {
+      final normalizedDate = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+      );
+      _events[normalizedDate]?.remove(event);
+    });
   }
 
-  Widget _buildYearView() {
-    return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        childAspectRatio: 1,
-      ),
-      itemCount: 12,
-      itemBuilder: (context, index) {
-        final month = DateTime(_focusedDay.year, index + 1, 1);
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              _focusedDay = month;
-              _currentIndex = 1;
-            });
-          },
-          child: Card(
-            child: Center(
-              child: Text(
-                "${month.month}/${month.year}",
-                style: const TextStyle(fontSize: 16),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildMonthView() {
-    return Column(
-      children: [
-        TableCalendar(
-          firstDay: DateTime.utc(2022, 1, 1),
-          lastDay: DateTime.utc(2030, 12, 31),
-          focusedDay: _focusedDay,
-          selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-          eventLoader: _getEventsForDay,
-          onDaySelected: (selectedDay, focusedDay) {
-            setState(() {
-              _selectedDay = selectedDay;
-              _focusedDay = focusedDay;
-              _selectedEvents.value = _getEventsForDay(selectedDay);
-            });
-          },
-          calendarStyle: const CalendarStyle(
-            todayDecoration: BoxDecoration(
-              color: Colors.blueAccent,
-              shape: BoxShape.circle,
-            ),
-            selectedDecoration: BoxDecoration(
-              color: Colors.blue,
-              shape: BoxShape.circle,
-            ),
-            markersMaxCount: 3,
-          ),
-        ),
-        Expanded(
-          child: ValueListenableBuilder<List<Event>>(
-            valueListenable: _selectedEvents,
-            builder: (context, value, _) {
-              if (value.isEmpty) {
-                return const Center(child: Text("No events for this day."));
-              }
-              return ListView.builder(
-                itemCount: value.length,
-                itemBuilder: (context, index) {
-                  return Slidable(
-                    key: ValueKey(value[index]),
-                    endActionPane: ActionPane(
-                      motion: const ScrollMotion(),
-                      children: [
-                        SlidableAction(
-                          label: 'Delete',
-                          backgroundColor: Colors.red,
-                          icon: Icons.delete,
-                          onPressed: (context) {
-                            setState(() {
-                              _events[_selectedDay!]?.removeAt(index);
-                              _selectedEvents.value = _getEventsForDay(_selectedDay!);
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                    child: ListTile(
-                      title: Text(value[index].title),
-                      subtitle: Text(value[index].recurrence ?? "One-time event"),
-                      trailing: CircleAvatar(
-                        backgroundColor: value[index].color,
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWeekView() {
-    final startOfWeek = _focusedDay.subtract(Duration(days: _focusedDay.weekday - 1));
-    return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 7,
-        childAspectRatio: 1,
-      ),
-      itemCount: 7,
-      itemBuilder: (context, index) {
-        final day = startOfWeek.add(Duration(days: index));
-        final events = _getEventsForDay(day);
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              _focusedDay = day;
-              _currentIndex = 3;
-            });
-          },
-          child: Card(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text("${day.day}"),
-                if (events.isNotEmpty)
-                  CircleAvatar(
-                    backgroundColor: Colors.blue,
-                    radius: 5,
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildDayView() {
-    final events = _getEventsForDay(_focusedDay);
-    return Column(
-      children: [
-        Text(
-          "Day: ${_focusedDay.toLocal().toString().split(' ')[0]}",
-          style: const TextStyle(fontSize: 18),
-        ),
-        if (events.isNotEmpty)
-          Expanded(
-            child: ListView.builder(
-              itemCount: events.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(events[index].title),
-                  subtitle: Text(events[index].recurrence ?? "One-time event"),
-                  trailing: CircleAvatar(
-                    backgroundColor: events[index].color,
-                  ),
-                );
-              },
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildScheduleView() {
-    List<Event> allEvents = _events.values.expand((e) => e).toList();
-    allEvents.sort((a, b) => a.title.compareTo(b.title));
-    return ListView.builder(
-      itemCount: allEvents.length,
-      itemBuilder: (context, index) {
-        return ListTile(
-          title: Text(allEvents[index].title),
-          subtitle: Text(allEvents[index].recurrence ?? "One-time event"),
-          trailing: CircleAvatar(
-            backgroundColor: allEvents[index].color,
-          ),
-        );
-      },
-    );
+  void _onDateSelected(DateTime date) {
+    setState(() {
+      _selectedDate = date;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final eventsForSelectedDate = _getEventsForDate(_selectedDate);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Calendar"),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: _searchEvents,
-          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: _addEvent,
           ),
         ],
       ),
-      body: IndexedStack(
-        index: _currentIndex,
+      body: Column(
         children: [
-          _buildYearView(),
-          _buildMonthView(),
-          _buildWeekView(),
-          _buildDayView(),
-          _buildScheduleView(),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        selectedItemColor: AppColors.primaryColor, // Set color for the selected label and icon
-        unselectedItemColor: AppColors.primaryColor, // Set color for the unselected label and icon
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.calendar_today, color: AppColors.primaryColor),
-            label: "Year",
+          Flexible(
+            child: CalendarWidget(
+              onDateSelected: _onDateSelected,
+              onViewChanged: (date) {
+                // View change handler
+              },
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.calendar_view_month, color: AppColors.primaryColor),
-            label: "Month",
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.calendar_view_week, color: AppColors.primaryColor),
-            label: "Week",
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.today, color: AppColors.primaryColor),
-            label: "Day",
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.list, color: AppColors.primaryColor),
-            label: "Schedule",
-          ),
+          if (eventsForSelectedDate.isNotEmpty)
+            Flexible(
+              child: ListView.builder(
+                itemCount: eventsForSelectedDate.length,
+                itemBuilder: (context, index) {
+                  final event = eventsForSelectedDate[index];
+                  return Slidable(
+                    endActionPane: ActionPane(
+                      motion: const ScrollMotion(),
+                      children: [
+                        SlidableAction(
+                          icon: Icons.delete,
+                          label: "Delete",
+                          backgroundColor: Colors.red,
+                          onPressed: (_) => _deleteEvent(event),
+                        ),
+                      ],
+                    ),
+                    child: ListTile(
+                      title: Text(event.title),
+                    ),
+                  );
+                },
+              ),
+            )
+          else
+            const Flexible(
+              child: Center(
+                child: Text("No events for this date."),
+              ),
+            ),
         ],
       ),
     );
@@ -371,93 +158,6 @@ class CalendarViewState extends State<CalendarView> {
 
 class Event {
   final String title;
-  final String? recurrence;
-  final Color color;
 
-  Event({
-    required this.title,
-    this.recurrence,
-    required this.color,
-  });
-}
-
-class EventSearchDelegate extends SearchDelegate<Event?> {
-  final LinkedHashMap<DateTime, List<Event>> events;
-
-  EventSearchDelegate({required this.events});
-
-  @override
-  List<Widget>? buildActions(BuildContext context) {
-    return [
-      IconButton(
-        icon: const Icon(Icons.clear),
-        onPressed: () {
-          query = '';
-        },
-      ),
-    ];
-  }
-
-  @override
-  Widget? buildLeading(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.arrow_back),
-      onPressed: () {
-        close(context, null); // Close the search delegate
-      },
-    );
-  }
-
-  @override
-  Widget buildResults(BuildContext context) {
-    final searchResults = events.values
-        .expand((e) => e)
-        .where((event) => event.title.toLowerCase().contains(query.toLowerCase()))
-        .toList();
-
-    if (searchResults.isEmpty) {
-      return const Center(
-        child: Text("No events found."),
-      );
-    }
-
-    return ListView.builder(
-      itemCount: searchResults.length,
-      itemBuilder: (context, index) {
-        final event = searchResults[index];
-        return ListTile(
-          title: Text(event.title),
-          subtitle: Text(event.recurrence ?? "One-time event"),
-          trailing: CircleAvatar(
-            backgroundColor: event.color,
-          ),
-          onTap: () {
-            close(context, event); // Return the selected event
-          },
-        );
-      },
-    );
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) {
-    final suggestions = events.values
-        .expand((e) => e)
-        .where((event) => event.title.toLowerCase().startsWith(query.toLowerCase()))
-        .toList();
-
-    return ListView.builder(
-      itemCount: suggestions.length,
-      itemBuilder: (context, index) {
-        final event = suggestions[index];
-        return ListTile(
-          title: Text(event.title),
-          onTap: () {
-            query = event.title;
-            showResults(context);
-          },
-        );
-      },
-    );
-  }
+  Event({required this.title});
 }

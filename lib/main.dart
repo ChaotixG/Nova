@@ -4,8 +4,21 @@ import 'color_reference.dart';
 import 'states/settings_state.dart';
 import 'states/home_screen_state.dart'; // Home state
 import 'widgets/drawer_widget.dart'; // Updated AppDrawer widget
+import 'vtt/audio_recorder.dart';
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-void main() {
+  // Create an instance of AudioRecorder
+  AudioRecorder audioRecorder = AudioRecorder();
+
+  // Initialize the recorder
+  try {
+    await audioRecorder.initRecorder();
+    debugPrint('Recorder initialized successfully.');
+  } catch (e) {
+    debugPrint('Error initializing recorder: $e');
+  }
+
   runApp(const NovaApp());
 }
 
@@ -62,5 +75,11 @@ class NovaAppState extends State<NovaApp> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    // Properly dispose of the recorder when the app is terminated
+    super.dispose();
   }
 }

@@ -178,22 +178,27 @@ class ChatWidgetState extends State<ChatWidget> {
           button.CustomButton(
             text: "", // Keep the text empty
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => VoiceStateWidget(
-                    onBackToNova: () {
-                      Navigator.pop(context); // Go back to the previous screen
-                    },
+              // Ensure widget is still mounted before navigating
+              if (mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => VoiceStateWidget(
+                      onBackToNova: () {
+                        if (mounted) {
+                          Navigator.pop(context); // Go back to the previous screen
+                        }
+                      },
+                    ),
                   ),
-                ),
-              );
+                );
+              }
             },
             animationOrGif: Lottie.asset(
               'assets/animations/ai_speech.json',
               width: MediaQuery.of(context).size.width * 0.05, // 5% of the screen width
             ),
-          ),
+          )
         ],
       ),
     );

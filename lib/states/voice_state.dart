@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import '../app_state.dart'; // Import AppState for dynamic state handling
+import '../vtt/audio_processor.dart' as audioProcessor;
+import '../vtt/audio_recorder.dart' as audioRecorder;
 
 class VoiceStateWidget extends AppState {
   final VoidCallback onBackToNova;
@@ -24,67 +26,113 @@ class _VoiceState extends StatefulWidget {
 }
 
 class _VoiceStateState extends State<_VoiceState> {
-  bool isTalking = false; // Indicates whether the button is in talking mode
-  bool isListening = true; // Indicates whether the button is in listening mode
-  int counter = 0; // Counter for duration in listening mode
-  Timer? timer; // Timer instance
+  bool isTalking = false; // Indicates whether the system is in talking mode
+  bool isListening = true; // Indicates whether the system is in listening mode
   final List<String> chat = []; // Chat list for AI responses
+  late audioRecorder.AudioRecorder _audioRecorder; // Use the alias for AudioRecorder
+  late audioProcessor.AudioProcessor _audioProcessor; // Use the alias for AudioProcessor
+  StreamSubscription? _audioStreamSubscription;
 
-  void _startListening() {
-    if (!isListening) return;
+  @override
+  void initState() {
+    super.initState();
+    _audioRecorder = audioRecorder.AudioRecorder(); // Use the alias for AudioRecorder
+    _audioProcessor = audioProcessor.AudioProcessor(); // Use the alias for AudioProcessor
 
-    setState(() {
-      counter = 0;
-    });
-
-    timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        counter++;
-      });
-    });
+    _initRecorder();
+    if (isListening) {
+      _startVoiceChat();
+    }
   }
 
-  void _stopListening() {
-    if (timer != null) {
-      timer!.cancel();
-      timer = null;
+  Future<void> _initRecorder() async {
+    await _audioRecorder.initRecorder();
+  }
 
-      setState(() {
-        chat.add("Listening duration: $counter seconds");
-        counter = 0; // Reset counter after recording in the chat
-      });
-    }
+  void _startVoiceChat() {
+    _audioRecorder.voiceChat(
+      onSpeechDetected: () {
+        if (isListening) {
+          setState(() {
+            chat.add("Speech detected.");
+            isListening = false;
+          });
+          _startRecording();
+        }
+      },
+      onEOSDetected: () {
+        setState(() {
+          isTalking = false;
+          isListening = true;
+        });
+        chat.add("End of speech detected.");
+        print("EOS detected, switching to listening mode.");
+      },
+      onAudioFrame: (audioFrame) {
+        if (isListening || isTalking) {
+          final isSpeechDetected = _audioProcessor.isSpeech(audioFrame);
+          print("Is speech detected: $isSpeechDetected");
+
+          if (isListening && isSpeechDetected) {
+            _startRecording();
+          } else if (isTalking && _audioProcessor.detectEOS()) {
+            print("EOS detected, stopping recording.");
+            _stopRecording();
+          }
+        }
+      },
+    );
+  }
+
+  Future<void> _startRecording() async {
+    await _audioRecorder.startRecording(
+      onSpeechDetected: () {
+        setState(() {
+          chat.add("Speech detected, recording started.");
+        });
+      },
+      onEOSDetected: () {
+        _stopRecording();
+      },
+    );
+  }
+
+  Future<void> _stopRecording() async {
+    await _audioRecorder.stopRecording();
+    setState(() {
+      chat.add("Recording stopped and processed.");
+    });
+    print("Recording stopped.");
   }
 
   void _toggleTalkingMode() {
-    if (!isTalking) {
-      setState(() {
-        isTalking = true;
-        isListening = false;
-      });
-    }
+    setState(() {
+      isTalking = true;
+      isListening = false;
+    });
   }
 
   void _toggleListeningMode() {
-    if (!isListening) {
-      setState(() {
-        isListening = true;
-        isTalking = false;
-      });
-    }
+    setState(() {
+      isListening = true;
+      isTalking = false;
+    });
   }
 
-  void _handleTalkingClick() {
+  void _handleTalkingInterrupt() {
     if (isTalking) {
       setState(() {
-        chat.add("Talking action performed");
+        chat.add("Talking interrupted, switching to listening mode.");
+        isTalking = false;
+        isListening = true;
       });
     }
   }
 
   @override
   void dispose() {
-    timer?.cancel(); // Cancel timer if active
+    _audioStreamSubscription?.cancel();
+    _audioRecorder.disposeRecorder();
     super.dispose();
   }
 
@@ -126,9 +174,7 @@ class _VoiceStateState extends State<_VoiceState> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 GestureDetector(
-                  onTap: isTalking ? _handleTalkingClick : null,
-                  onLongPress: isListening ? _startListening : null,
-                  onLongPressUp: isListening ? _stopListening : null,
+                  onTap: isTalking ? _handleTalkingInterrupt : null,
                   child: Container(
                     width: 100,
                     height: 100,

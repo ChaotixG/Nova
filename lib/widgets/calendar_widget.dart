@@ -4,11 +4,17 @@ import '../color_reference.dart';
 class CalendarWidget extends StatefulWidget {
   final Function(DateTime)? onDateSelected;
   final Function(DateTime)? onViewChanged;
+  final Map<DateTime, List<String>>? events; // Key: Date, Value: List of event titles
+  final Function(DateTime, String)? onEventAdded;
+  final Function(DateTime, String)? onEventDeleted;
 
   const CalendarWidget({
     super.key,
     this.onDateSelected,
     this.onViewChanged,
+    this.events,
+    this.onEventAdded,
+    this.onEventDeleted,
   });
 
   @override
@@ -24,7 +30,7 @@ class CalendarWidgetState extends State<CalendarWidget> {
     return Column(
       children: [
         _buildHeader(),
-        Expanded(child: _buildCurrentView()),
+        Expanded(child: _buildCurrentView()), // Ensure Expanded is used here
         _buildNavigationBar(),
       ],
     );
@@ -102,45 +108,55 @@ class CalendarWidgetState extends State<CalendarWidget> {
   }
 
   Widget _buildYearView() {
-    return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        childAspectRatio: 1.5,
-      ),
-      itemCount: 12,
-      itemBuilder: (context, index) {
-        final monthDate = DateTime(_focusedDate.year, index + 1, 1);
-        return GestureDetector(
-          onTap: () => _onDateSelected(monthDate),
-          child: Card(
-            child: Center(child: Text(_getMonthName(index))),
-          ),
-        );
-      },
-    );
+    return LayoutBuilder(builder: (context, constraints) {
+      return GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 4,
+          childAspectRatio: 1.5,
+        ),
+        itemCount: 12,
+        itemBuilder: (context, index) {
+          final monthDate = DateTime(_focusedDate.year, index + 1, 1);
+          return GestureDetector(
+            onTap: () => _onDateSelected(monthDate),
+            child: Card(
+              child: Center(child: Text(_getMonthName(index))),
+            ),
+          );
+        },
+      );
+    });
   }
 
   Widget _buildMonthView() {
     final firstDay = DateTime(_focusedDate.year, _focusedDate.month, 1);
     final daysInMonth = DateUtils.getDaysInMonth(firstDay.year, firstDay.month);
 
-    return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 7,
-        childAspectRatio: 1,
-      ),
-      itemCount: daysInMonth,
-      itemBuilder: (context, index) {
-        final dayDate = DateTime(firstDay.year, firstDay.month, index + 1);
-        return GestureDetector(
-          onDoubleTap: () => _showDayPopup(dayDate),
-          onTap: () => _onDateSelected(dayDate),
-          child: Card(
-            child: Center(child: Text('${dayDate.day}')),
-          ),
-        );
-      },
-    );
+    return LayoutBuilder(builder: (context, constraints) {
+      return GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 7,
+          childAspectRatio: 1,
+        ),
+        itemCount: daysInMonth,
+        itemBuilder: (context, index) {
+          final dayDate = DateTime(firstDay.year, firstDay.month, index + 1);
+          return GestureDetector(
+            onTap: () => _onDateSelected(dayDate),
+            child: Card(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('${dayDate.day}'),
+                  if (widget.events?[dayDate]?.isNotEmpty ?? false)
+                    const Icon(Icons.event, color: Colors.blue, size: 12),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    });
   }
 
   Widget _buildWeekView() {
@@ -157,10 +173,36 @@ class CalendarWidgetState extends State<CalendarWidget> {
   }
 
   Widget _buildDayView() {
-    return Center(
-      child: Text(
-        '${_focusedDate.day} ${_getMonthName(_focusedDate.month - 1)}, ${_focusedDate.year}',
-      ),
+    final events = widget.events?[_focusedDate] ?? [];
+    return Column(
+      children: [
+        Text(
+          '${_focusedDate.day} ${_getMonthName(_focusedDate.month - 1)}, ${_focusedDate.year}',
+          style: const TextStyle(fontSize: 18),
+        ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: events.length,
+            itemBuilder: (context, index) {
+              return ListTile(
+                title: Text(events[index]),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () {
+                    if (widget.onEventDeleted != null) {
+                      widget.onEventDeleted!(_focusedDate, events[index]);
+                    }
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        TextButton(
+          onPressed: _addEvent,
+          child: const Text('Add Event'),
+        ),
+      ],
     );
   }
 
@@ -208,17 +250,30 @@ class CalendarWidgetState extends State<CalendarWidget> {
     }
   }
 
-  void _showDayPopup(DateTime date) {
+  void _addEvent() {
     showDialog(
       context: context,
       builder: (context) {
+        TextEditingController eventController = TextEditingController();
         return AlertDialog(
-          title: Text('${date.day} ${_getMonthName(date.month - 1)}, ${date.year}'),
-          content: const Text('Details for the selected day.'),
+          title: const Text('Add Event'),
+          content: TextField(
+            controller: eventController,
+            decoration: const InputDecoration(hintText: 'Event Title'),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                if (widget.onEventAdded != null) {
+                  widget.onEventAdded!(_focusedDate, eventController.text);
+                }
+                Navigator.pop(context);
+              },
+              child: const Text('Save'),
             ),
           ],
         );
@@ -237,7 +292,7 @@ class CalendarWidgetState extends State<CalendarWidget> {
       case 3:
         return '${_focusedDate.day} ${_getMonthName(_focusedDate.month - 1)}';
       default:
-        return '${_getMonthName(_focusedDate.month - 1)} ${_focusedDate.year}';
+        return '';
     }
   }
 
@@ -259,4 +314,3 @@ class CalendarWidgetState extends State<CalendarWidget> {
     return months[index];
   }
 }
-
