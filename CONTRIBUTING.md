@@ -7,7 +7,7 @@ Thank you for considering contributing to the **Nova assistant**! We welcome con
 
 ### Reporting Bugs
 
-If you find any bugs, please open an issue on GitHub with the following information:
+If you find any bugs, please [open an issue](https://github.com/ChaotixG/Nova/issues/new/choose) on GitHub with the following information:
 - Steps to reproduce the bug
 - Expected behavior vs actual behavior
 - Any relevant error messages or logs
