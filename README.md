@@ -107,4 +107,3 @@ We welcome contributions from the community. Feel free to open issues or submit 
 
 ## License
 
-This project is licensed under the MIT License.
