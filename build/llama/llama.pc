@@ -1,0 +1,10 @@
+prefix=C:/Program Files (x86)/Nova
+exec_prefix=C:/Program Files (x86)/Nova
+libdir=C:/Program Files (x86)/Nova/lib
+includedir=C:/Program Files (x86)/Nova/include
+
+Name: llama
+Description: Port of Facebook's LLaMA model in C/C++
+Version: 0.0.5131
+Libs: -L${libdir} -lggml -lggml-base -lllama
+Cflags: -I${includedir}

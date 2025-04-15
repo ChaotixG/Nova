@@ -1,0 +1,15 @@
+D:/Projects/Programming/apps/Nova/build/CMakeFiles/nova_cpp.dir
+D:/Projects/Programming/apps/Nova/build/CMakeFiles/INSTALL.dir
+D:/Projects/Programming/apps/Nova/build/CMakeFiles/ALL_BUILD.dir
+D:/Projects/Programming/apps/Nova/build/CMakeFiles/ZERO_CHECK.dir
+D:/Projects/Programming/apps/Nova/build/llama/CMakeFiles/INSTALL.dir
+D:/Projects/Programming/apps/Nova/build/llama/CMakeFiles/ALL_BUILD.dir
+D:/Projects/Programming/apps/Nova/build/llama/ggml/CMakeFiles/INSTALL.dir
+D:/Projects/Programming/apps/Nova/build/llama/ggml/CMakeFiles/ALL_BUILD.dir
+D:/Projects/Programming/apps/Nova/build/llama/ggml/src/CMakeFiles/ggml-base.dir
+D:/Projects/Programming/apps/Nova/build/llama/ggml/src/CMakeFiles/ggml.dir
+D:/Projects/Programming/apps/Nova/build/llama/ggml/src/CMakeFiles/ggml-cpu.dir
+D:/Projects/Programming/apps/Nova/build/llama/ggml/src/CMakeFiles/INSTALL.dir
+D:/Projects/Programming/apps/Nova/build/llama/ggml/src/ggml-cpu/CMakeFiles/INSTALL.dir
+D:/Projects/Programming/apps/Nova/build/llama/src/CMakeFiles/llama.dir
+D:/Projects/Programming/apps/Nova/build/llama/src/CMakeFiles/INSTALL.dir

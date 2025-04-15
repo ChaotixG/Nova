@@ -1,0 +1,23 @@
+{
+    "models":[
+        {
+            "name": "Mistral Dragon 7B",
+            "path": "src/assets/models/dragon-mistral-7b-v0.Q8_0.gguf",
+            "info":{
+                "Quantization": "8-bit"
+            }
+        },{
+            "name": "Vicuna 7B",
+            "path": "src/assets/models/Wizard-Vicuna-7B-Uncensored.Q6_K.gguf",
+            "info":{
+                "Quantization": "6-bit"
+            }
+        },{
+            "name": "WizardLM 7B",
+            "path": "",
+            "info":{
+                "Quantization": "6-bit"
+            }
+        },
+    ]
+}

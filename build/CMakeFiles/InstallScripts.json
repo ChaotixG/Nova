@@ -1,0 +1,12 @@
+{
+	"InstallScripts" : 
+	[
+		"D:/Projects/Programming/apps/Nova/build/cmake_install.cmake",
+		"D:/Projects/Programming/apps/Nova/build/llama/cmake_install.cmake",
+		"D:/Projects/Programming/apps/Nova/build/llama/ggml/cmake_install.cmake",
+		"D:/Projects/Programming/apps/Nova/build/llama/ggml/src/cmake_install.cmake",
+		"D:/Projects/Programming/apps/Nova/build/llama/ggml/src/ggml-cpu/cmake_install.cmake",
+		"D:/Projects/Programming/apps/Nova/build/llama/src/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

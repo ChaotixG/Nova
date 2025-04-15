@@ -1,0 +1,9 @@
+{
+    "active_personality": "nova_unfiltered_prompt.json",
+    "available_personalities": [
+      "personalities/nova_unfiltered_prompt.json",
+      "personalities/default_safe_prompt.json",
+      "personalities/assistant_gpt_style_prompt.json"
+    ]
+}
+  
